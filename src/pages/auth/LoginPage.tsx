@@ -1,0 +1,158 @@
+import { useEffect, useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from '@/lib/supabase';
+import { toast } from '@/components/ui/use-toast';
+
+export default function LoginPage() {
+  const [isLoading, setIsLoading] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
+  const { login, user } = useAuth();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setIsLoading(true);
+    try {
+      const result = await login(email, password);
+      if (result) {
+        // Buscar perfil atualizado diretamente do Supabase
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('email', email);
+        const currentUser = profiles && profiles.length > 0 ? profiles[0] : null;
+        if (currentUser) {
+          if (currentUser.role === 'admin') {
+            navigate('/admin');
+          } else if (currentUser.role === 'professional') {
+            navigate('/dashboard');
+          }
+        }
+      }
+    } catch (error) {
+      setError("Ocorreu um erro durante o login. Tente novamente.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const error = localStorage.getItem('loginError');
+    if (error) {
+      toast({
+        title: 'Acesso não autorizado',
+        description: error,
+        variant: 'destructive',
+      });
+      localStorage.removeItem('loginError');
+    }
+  }, []);
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-brand/10 to-emerald-100 dark:from-gray-900 dark:to-gray-800 transition-colors duration-300">
+      <div className="w-full max-w-md px-4">
+        <Card className="shadow-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
+          <CardHeader>
+            <CardTitle className="text-2xl font-extrabold text-brand dark:text-emerald-400 text-center">Login</CardTitle>
+            <CardDescription className="text-center dark:text-gray-300">
+              Entre com suas credenciais para acessar o seu perfil
+            </CardDescription>
+          </CardHeader>
+          <form onSubmit={handleSubmit}>
+            <CardContent className="space-y-4">
+              {error && (
+                <div className="bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400 p-3 rounded-md text-sm text-center">
+                  {error}
+                </div>
+              )}
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="seu@email.com"
+                  required
+                  disabled={isLoading}
+                  className="focus:ring-2 focus:ring-brand dark:focus:ring-emerald-400"
+                />
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password">Senha</Label>
+                  <Link
+                    to="/forgot-password"
+                    className="text-sm text-brand dark:text-emerald-400 hover:underline"
+                  >
+                    Esqueceu sua senha?
+                  </Link>
+                </div>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  disabled={isLoading}
+                  className="focus:ring-2 focus:ring-brand dark:focus:ring-emerald-400"
+                />
+              </div>
+            </CardContent>
+            <CardFooter className="flex flex-col space-y-4">
+              <Button
+                type="submit"
+                className="w-full font-bold transition-all duration-300"
+                style={{
+                  background: 'var(--brand-primary)',
+                  color: '#fff',
+                  border: 'none',
+                }}
+                onMouseOver={e => (e.currentTarget.style.background = 'rgb(98,131,152)')}
+                onMouseOut={e => (e.currentTarget.style.background = 'var(--brand-primary)')}
+                disabled={isLoading}
+              >
+                {isLoading ? "Entrando..." : "Entrar"}
+              </Button>
+              <Button
+                asChild
+                variant="outline"
+                className="w-full font-bold transition-all duration-300 mt-4"
+                style={{
+                  borderColor: 'var(--brand-primary)',
+                  color: 'var(--brand-primary)',
+                  background: '#fff',
+                }}
+                onMouseOver={e => {
+                  e.currentTarget.style.background = 'rgb(98,131,152)';
+                  e.currentTarget.style.color = '#fff';
+                }}
+                onMouseOut={e => {
+                  e.currentTarget.style.background = '#fff';
+                  e.currentTarget.style.color = 'var(--brand-primary)';
+                }}
+              >
+                <Link to="/register">Criar conta</Link>
+              </Button>
+            </CardFooter>
+          </form>
+        </Card>
+      </div>
+    </div>
+  );
+}
