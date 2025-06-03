@@ -1,73 +1,79 @@
-# Welcome to your Lovable project
+# Indicador Profissional
 
-## Project info
+Sistema de indicação e gerenciamento de profissionais da área da saúde.
 
-**URL**: https://lovable.dev/projects/e7897ce5-fec3-4bdb-b8c1-68ff43aa1fa3
+## Funcionalidades
 
-## How can I edit this code?
+- Cadastro de profissionais
+- Aprovação de perfis
+- Visualização de detalhes do profissional
+- Gerenciamento de consultórios
+- Interface administrativa
+- Sistema de busca e filtros
 
-There are several ways of editing your application.
+## Tecnologias Utilizadas
 
-**Use Lovable**
+- React
+- TypeScript
+- Vite
+- Tailwind CSS
+- Shadcn/ui
+- Supabase
+- React Router
+- React Query
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/e7897ce5-fec3-4bdb-b8c1-68ff43aa1fa3) and start prompting.
+## Instalação
 
-Changes made via Lovable will be committed automatically to this repo.
+1. Clone o repositório:
+```bash
+git clone https://github.com/wandersonmk/indicador-profissional.git
+```
 
-**Use your preferred IDE**
+2. Instale as dependências:
+```bash
+npm install
+```
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+3. Configure as variáveis de ambiente:
+Crie um arquivo `.env` na raiz do projeto com as seguintes variáveis:
+```env
+VITE_SUPABASE_URL=sua_url_do_supabase
+VITE_SUPABASE_ANON_KEY=sua_chave_anonima_do_supabase
+```
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+4. Execute o projeto:
+```bash
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+## Scripts Disponíveis
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+- `npm run dev` - Inicia o servidor de desenvolvimento
+- `npm run build` - Gera a build de produção
+- `npm run preview` - Visualiza a build de produção localmente
+- `npm run lint` - Executa o linter
+- `npm run migrate` - Executa as migrações do banco de dados
 
-**Use GitHub Codespaces**
+## Estrutura do Projeto
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+```
+src/
+  ├── components/     # Componentes reutilizáveis
+  ├── pages/         # Páginas da aplicação
+  ├── lib/           # Configurações e utilitários
+  ├── hooks/         # Custom hooks
+  ├── types/         # Definições de tipos TypeScript
+  └── styles/        # Estilos globais
+```
 
-## What technologies are used for this project?
+## Contribuição
 
-This project is built with:
+1. Faça um fork do projeto
+2. Crie uma branch para sua feature (`git checkout -b feature/nova-feature`)
+3. Commit suas mudanças (`git commit -m 'Adiciona nova feature'`)
+4. Push para a branch (`git push origin feature/nova-feature`)
+5. Abra um Pull Request
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## Licença
 
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/e7897ce5-fec3-4bdb-b8c1-68ff43aa1fa3) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+Este projeto está sob a licença MIT.
