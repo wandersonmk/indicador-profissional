@@ -12,7 +12,7 @@ export default function HomePage() {
         <div className="container mx-auto px-4 flex flex-col items-center justify-center text-center">
           {!imageError ? (
             <img 
-              src="https://xxoqkjlbvjzjreyfmete.supabase.co/storage/v1/object/public/imagens/logo_acdc_sem_fundo_pequeno.png"
+              src="/logo_acdc_sem_fundo_pequeno.png"
               alt="Logo ACDC" 
               className="w-48 h-48 mb-8 object-contain"
               onError={() => setImageError(true)}
