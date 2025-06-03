@@ -97,7 +97,7 @@ export default function LoginPage() {
                 <div className="flex items-center justify-between">
                   <Label htmlFor="password">Senha</Label>
                   <a
-                    href="https://redefinirsenha-e8ufc4.flutterflow.app/"
+                    href="https://indicador-profissional.flutterflow.app/"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-sm text-brand dark:text-emerald-400 hover:underline"
