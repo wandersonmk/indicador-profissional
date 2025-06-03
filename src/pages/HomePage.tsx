@@ -1,17 +1,27 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { useState } from 'react';
 
 export default function HomePage() {
+  const [imageError, setImageError] = useState(false);
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
       {/* Hero Section */}
       <section className="bg-gradient-to-br from-brand to-brand-light dark:from-gray-900 dark:to-gray-800 py-16 md:py-24">
         <div className="container mx-auto px-4 flex flex-col items-center justify-center text-center">
-          <img 
-            src="https://xxoqkjlbvjzjreyfmete.supabase.co/storage/v1/object/public/imagens//logo_acdc_sem_fundo_pequeno.png" 
-            alt="Logo ACDC" 
-            className="w-48 h-48 mb-8 object-contain"
-          />
+          {!imageError ? (
+            <img 
+              src="https://xxoqkjlbvjzjreyfmete.supabase.co/storage/v1/object/public/imagens/logo_acdc_sem_fundo_pequeno.png"
+              alt="Logo ACDC" 
+              className="w-48 h-48 mb-8 object-contain"
+              onError={() => setImageError(true)}
+            />
+          ) : (
+            <div className="w-48 h-48 mb-8 flex items-center justify-center bg-white/10 rounded-lg">
+              <span className="text-white text-xl font-bold">ACDC</span>
+            </div>
+          )}
           <div className="max-w-3xl">
             <h1 className="text-4xl md:text-6xl font-extrabold text-white mb-6 drop-shadow-lg">
               Encontre Profissionais de Odontologia de Excelência
