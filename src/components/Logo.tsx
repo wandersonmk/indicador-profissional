@@ -9,7 +9,7 @@ export function Logo({ className }: LogoProps) {
     <div className={`flex items-center space-x-3 ${className}`}>
       <div className="p-2">
         <img 
-          src="/img/logo_acdc_sem_fundo_pequeno.png" 
+          src="https://xxoqkjlbvjzjreyfmete.supabase.co/storage/v1/object/public/imagens/logo_acdc_sem_fundo_pequeno.png" 
           alt="Logo" 
           className="h-12 w-12 object-contain"
         />
