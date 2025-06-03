@@ -1,10 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { getPublicProfessionals } from '@/lib/data-service';
 
 export default function HomePage() {
-  const featuredProfessionals = getPublicProfessionals().slice(0, 3);
-
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
       {/* Hero Section */}
@@ -39,53 +36,6 @@ export default function HomePage() {
           </div>
         </div>
       </section>
-
-      {/* Featured Professionals */}
-      {featuredProfessionals.length > 0 && (
-        <section className="py-16 dark:bg-gray-900 transition-colors duration-300">
-          <div className="container mx-auto px-4">
-            <h2 className="text-3xl font-bold text-center mb-12 text-gray-900 dark:text-white">Profissionais em destaque</h2>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {featuredProfessionals.map((professional) => (
-                <div
-                  key={professional.id}
-                  className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden dentist-card transform transition hover:scale-105 hover:shadow-xl"
-                >
-                  <div className="p-6 flex flex-col items-center">
-                    <div className="h-16 w-16 rounded-full bg-brand-light dark:bg-brand flex items-center justify-center text-white text-2xl font-bold mb-4 shadow">
-                      {professional.fullName.split(' ').map(n => n[0]).join('').slice(0,2)}
-                    </div>
-                    <h3 className="text-xl font-semibold mb-2 text-gray-900 dark:text-white text-center">{professional.fullName}</h3>
-                    <p className="text-brand font-medium mb-4 text-center">
-                      {professional.specialty1}
-                      {professional.specialty2 && `, ${professional.specialty2}`}
-                    </p>
-                    <p className="text-gray-600 dark:text-gray-300 mb-2 text-center">
-                      <span className="font-medium">Cidade:</span> {professional.city}
-                    </p>
-                    <div className="mt-4">
-                      <Link 
-                        to={`/professionals/${professional.id}`}
-                        className="text-brand hover:underline font-medium"
-                      >
-                        Ver detalhes
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="mt-12 text-center">
-              <Button 
-                asChild 
-                className="bg-gradient-to-r from-emerald-500 to-emerald-700 text-white border-0 shadow-lg transition-all duration-300 hover:from-emerald-600 hover:to-emerald-800 hover:scale-105 hover:shadow-xl font-bold"
-              >
-                <Link to="/professionals">Ver todos os profissionais</Link>
-              </Button>
-            </div>
-          </div>
-        </section>
-      )}
 
       {/* How It Works */}
       <section className="py-16 bg-gray-50 dark:bg-gray-800 transition-colors duration-300">
