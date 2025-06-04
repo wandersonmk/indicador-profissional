@@ -80,6 +80,7 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showSecondSpecialty, setShowSecondSpecialty] = useState(false);
+  const [uploadingFile, setUploadingFile] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -96,8 +97,8 @@ export default function RegisterPage() {
         setFormErrors((prev) => ({ ...prev, croFile: "Por favor, envie um arquivo PDF, JPG ou PNG" }));
         return;
       }
-      if (file.size > 15 * 1024 * 1024) {
-        setFormErrors((prev) => ({ ...prev, croFile: "O arquivo deve ter no máximo 15MB" }));
+      if (file.size > 5 * 1024 * 1024) {
+        setFormErrors((prev) => ({ ...prev, croFile: "O arquivo deve ter no máximo 5MB. Arquivos maiores podem travar o cadastro." }));
         return;
       }
       setFormData((prev) => ({ ...prev, croFile: file }));
@@ -352,64 +353,79 @@ export default function RegisterPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateStep()) return;
-    setIsLoading(true);
+
     try {
-      // 1. Cria usuário no Auth
-      const { data, error } = await supabase.auth.signUp({
+      setIsLoading(true);
+      setUploadingFile(false);
+      console.log('Iniciando processo de cadastro...');
+
+      // 1. Criar usuário no Supabase Auth
+      console.log('Criando usuário no Supabase Auth...');
+      const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
+        options: {
+          data: {
+            full_name: formData.fullName,
+          },
+        },
       });
-      console.log('signUp:', { data, error });
-      if (error || !data.user) throw error || new Error('Usuário não criado');
-      let session = data.session;
-      const userId = data.user.id;
 
-      // Se não há sessão, tenta login automático (caso não exija confirmação de e-mail)
-      if (!session) {
-        const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
-          email: formData.email,
-          password: formData.password,
+      if (authError) {
+        console.error('Erro ao criar usuário:', authError);
+        throw authError;
+      }
+
+      const userId = authData.user?.id;
+      if (!userId) {
+        throw new Error('ID do usuário não retornado após criação');
+      }
+      console.log('Usuário criado com sucesso:', userId);
+
+      let croFileUrl = null;
+
+      // 2. Upload do arquivo CRO (se houver)
+      if (formData.croFile) {
+        setUploadingFile(true);
+        toast({
+          title: "Enviando arquivo...",
+          description: "Aguarde enquanto o arquivo do CRO está sendo enviado.",
         });
-        console.log('signInWithPassword:', { loginData, loginError });
-        if (loginError || !loginData.session) {
-          toast({
-            title: 'Confirme seu e-mail',
-            description: 'Verifique sua caixa de entrada e confirme seu e-mail antes de continuar.',
-            variant: 'destructive',
-          });
+        try {
+          const uploadPromise = supabase.storage
+            .from('cro-files')
+            .upload(`${userId}/${formData.croFile.name}`, formData.croFile, { upsert: true });
+          // Timeout de 30 segundos para upload
+          const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Tempo limite de upload excedido. Tente um arquivo menor.')), 30000));
+          const uploadResult = await Promise.race([uploadPromise, timeoutPromise]);
+          // uploadResult pode ser um erro lançado pelo timeout ou o resultado do upload
+          if (typeof uploadResult === 'object' && uploadResult !== null && 'error' in uploadResult && uploadResult.error) {
+            setUploadingFile(false);
+            setIsLoading(false);
+            console.error('Erro no upload do arquivo CRO:', uploadResult.error);
+            throw uploadResult.error;
+          }
+          const { data: urlData } = supabase.storage
+            .from('cro-files')
+            .getPublicUrl(`${userId}/${formData.croFile.name}`);
+          croFileUrl = urlData.publicUrl;
+          setUploadingFile(false);
+          console.log('Upload do arquivo CRO concluído:', croFileUrl);
+        } catch (uploadError) {
+          setUploadingFile(false);
           setIsLoading(false);
+          console.error('Erro no processo de upload do CRO:', uploadError);
+          toast({
+            title: "Erro ao enviar arquivo",
+            description: uploadError.message || "Ocorreu um erro ao enviar o arquivo. Tente um arquivo menor.",
+            variant: "destructive",
+          });
           return;
         }
-        session = loginData.session;
       }
 
-      // 2. Aguarda 3 segundos
-      await new Promise(resolve => setTimeout(resolve, 3000));
-
-      // 3. Insere em profiles
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert([{
-          id: userId,
-          email: formData.email,
-          role: 'professional'
-        }]);
-      console.log('insert profiles:', { profileError });
-      if (profileError) throw profileError;
-
-      // 4. Upload do arquivo CRO (se houver)
-      let croFileUrl = '';
-      if (formData.croFile) {
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('cro-files')
-          .upload(`${userId}/${formData.croFile.name}`, formData.croFile, { upsert: true });
-        console.log('upload cro-file:', { uploadData, uploadError });
-        if (uploadError) throw uploadError;
-        const { data: urlData } = supabase.storage.from('cro-files').getPublicUrl(`${userId}/${formData.croFile.name}`);
-        croFileUrl = urlData.publicUrl;
-      }
-
-      // 5. Insere em professional_profiles
+      // 3. Insere em professional_profiles
+      console.log('Inserindo dados em professional_profiles...');
       const { error: profProfileError } = await supabase
         .from('professional_profiles')
         .insert([{
@@ -455,10 +471,15 @@ export default function RegisterPage() {
           approval_status: 'pending',
           is_blocked: false
         }]);
-      console.log('insert professional_profiles:', { profProfileError });
-      if (profProfileError) throw profProfileError;
 
-      // 6. Insere em pending_approvals
+      if (profProfileError) {
+        console.error('Erro ao inserir em professional_profiles:', profProfileError);
+        throw profProfileError;
+      }
+      console.log('Dados inseridos em professional_profiles com sucesso');
+
+      // 4. Insere em pending_approvals
+      console.log('Inserindo dados em pending_approvals...');
       const { error: pendingApprovalError } = await supabase
         .from('pending_approvals')
         .insert([{
@@ -466,10 +487,15 @@ export default function RegisterPage() {
           status: 'pending',
           is_blocked: false
         }]);
-      console.log('insert pending_approvals:', { pendingApprovalError });
-      if (pendingApprovalError) throw pendingApprovalError;
 
-      // Enviar webhook de cadastro
+      if (pendingApprovalError) {
+        console.error('Erro ao inserir em pending_approvals:', pendingApprovalError);
+        throw pendingApprovalError;
+      }
+      console.log('Dados inseridos em pending_approvals com sucesso');
+
+      // 5. Enviar webhook de cadastro
+      console.log('Enviando webhook de cadastro...');
       try {
         await fetch('https://n8n-n8n-start.2nyhks.easypanel.host/webhook/cadastro', {
           method: 'POST',
@@ -482,8 +508,10 @@ export default function RegisterPage() {
             email: formData.email
           })
         });
+        console.log('Webhook enviado com sucesso');
       } catch (webhookError) {
         console.error('Erro ao enviar webhook de cadastro:', webhookError);
+        // Não vamos lançar erro aqui para não impedir o cadastro
       }
 
       toast({
@@ -491,14 +519,17 @@ export default function RegisterPage() {
         description: 'Seu cadastro foi enviado para aprovação. Você receberá um aviso quando for aprovado.',
       });
       navigate('/register-success');
-    } catch (error: any) {
-      console.error('Erro no registro:', error);
+    } catch (error) {
+      setUploadingFile(false);
+      setIsLoading(false);
+      console.error('Erro durante o processo de cadastro:', error);
       toast({
-        title: 'Erro no cadastro',
-        description: error?.message || 'Ocorreu um erro ao processar seu cadastro.',
-        variant: 'destructive',
+        title: "Erro no cadastro",
+        description: "Ocorreu um erro durante o cadastro. Por favor, tente novamente.",
+        variant: "destructive",
       });
     } finally {
+      setUploadingFile(false);
       setIsLoading(false);
     }
   };
@@ -1635,9 +1666,14 @@ export default function RegisterPage() {
                   <Button 
                     type="submit" 
                     className="ml-auto bg-gradient-to-r from-emerald-500 to-emerald-700 text-white hover:from-emerald-600 hover:to-emerald-800 hover:scale-105 hover:shadow-lg transition-all duration-300 font-medium px-8" 
-                    disabled={isLoading || !formData.dataSharingConsent || !formData.rulesAcceptance}
+                    disabled={isLoading || !formData.dataSharingConsent || !formData.rulesAcceptance || uploadingFile}
                   >
-                    {isLoading ? (
+                    {uploadingFile ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Enviando arquivo...
+                      </>
+                    ) : isLoading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         Processando...
