@@ -27,14 +27,28 @@ export default function LoginPage() {
     e.preventDefault();
     setError("");
     setIsLoading(true);
+
     try {
-      const result = await login(email, password);
+      // Add timeout protection
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Login timeout')), 10000); // 10 second timeout
+      });
+
+      const result = await Promise.race([
+        login(email, password),
+        timeoutPromise
+      ]) as boolean;
+
       if (result) {
-        // Buscar perfil atualizado diretamente do Supabase
-        const { data: profiles } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('email', email);
+        // Fetch updated profile with timeout protection
+        const { data: profiles } = await Promise.race([
+          supabase
+            .from('profiles')
+            .select('*')
+            .eq('email', email),
+          timeoutPromise
+        ]) as { data: any };
+
         const currentUser = profiles && profiles.length > 0 ? profiles[0] : null;
         if (currentUser) {
           if (currentUser.role === 'admin') {
@@ -44,8 +58,13 @@ export default function LoginPage() {
           }
         }
       }
-    } catch (error) {
-      setError("Ocorreu um erro durante o login. Tente novamente.");
+    } catch (error: any) {
+      console.error('Login error:', error);
+      if (error.message === 'Login timeout') {
+        setError("O login demorou muito para responder. Por favor, tente novamente.");
+      } else {
+        setError("Ocorreu um erro durante o login. Tente novamente.");
+      }
     } finally {
       setIsLoading(false);
     }

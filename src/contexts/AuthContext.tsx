@@ -89,31 +89,50 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const login = async (email: string, password: string) => {
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+      // Add timeout protection
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Login timeout')), 10000); // 10 second timeout
       });
+
+      // Login with timeout protection
+      const { data, error } = await Promise.race([
+        supabase.auth.signInWithPassword({
+          email,
+          password,
+        }),
+        timeoutPromise
+      ]) as { data: any, error: any };
 
       if (error) throw error;
 
       if (data.user) {
-        const { data: profiles, error: profileError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', data.user.id);
+        // Fetch profile with timeout protection
+        const { data: profiles, error: profileError } = await Promise.race([
+          supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', data.user.id),
+          timeoutPromise
+        ]) as { data: any, error: any };
+
         if (profileError) throw profileError;
         const profile = profiles && profiles.length > 0 ? profiles[0] : null;
+
         if (profile) {
           if (profile.role === 'professional') {
-            // Verifica aprovação e bloqueio na pending_approvals
-            const { data: approvals, error: approvalError } = await supabase
-              .from('pending_approvals')
-              .select('*')
-              .eq('professional_id', data.user.id)
-              .order('created_at', { ascending: false });
+            // Check approval status with timeout protection
+            const { data: approvals, error: approvalError } = await Promise.race([
+              supabase
+                .from('pending_approvals')
+                .select('*')
+                .eq('professional_id', data.user.id)
+                .order('created_at', { ascending: false }),
+              timeoutPromise
+            ]) as { data: any, error: any };
+
             if (approvalError) throw approvalError;
             const approval = approvals && approvals.length > 0 ? approvals[0] : null;
-            console.log('[DEBUG] pending_approvals:', approval);
+
             if (!approval || approval.status !== 'approved' || approval.is_blocked) {
               setUser(null);
               await supabase.auth.signOut();
@@ -127,25 +146,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             title: 'Login bem-sucedido',
             description: `Bem-vindo, ${profile.email}!`,
           });
-          // Redirecionamento conforme role (deixe para o componente que consome o contexto)
           return true;
-        } else {
-          setUser(null);
-          toast({
-            title: 'Perfil não encontrado',
-            description: 'Não foi possível localizar o perfil deste usuário. Contate o administrador.',
-            variant: 'destructive',
-          });
         }
+        setUser(null);
+        toast({
+          title: 'Perfil não encontrado',
+          description: 'Não foi possível localizar o perfil deste usuário. Contate o administrador.',
+          variant: 'destructive',
+        });
       }
       return false;
     } catch (error) {
       const authError = error as AuthError;
-      toast({
-        title: 'Falha no login',
-        description: authError.message || 'Email ou senha incorretos.',
-        variant: 'destructive',
-      });
+      console.error('Login error:', authError);
+      
+      // Handle timeout specifically
+      if (authError.message === 'Login timeout') {
+        toast({
+          title: 'Tempo esgotado',
+          description: 'O login demorou muito para responder. Por favor, tente novamente.',
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: 'Falha no login',
+          description: authError.message || 'Email ou senha incorretos.',
+          variant: 'destructive',
+        });
+      }
       return false;
     }
   };

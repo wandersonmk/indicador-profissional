@@ -382,6 +382,24 @@ export default function RegisterPage() {
       }
       console.log('Usuário criado com sucesso:', userId);
 
+      // 2. Criar registro na tabela profiles
+      console.log('Criando registro na tabela profiles...');
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert([{
+          id: userId,
+          email: formData.email,
+          role: 'professional',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }]);
+
+      if (profileError) {
+        console.error('Erro ao criar perfil:', profileError);
+        throw profileError;
+      }
+      console.log('Perfil criado com sucesso');
+
       let croFileUrl = null;
 
       // 2. Upload do arquivo CRO (se houver)
