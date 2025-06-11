@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import {
   Card,
@@ -81,6 +81,18 @@ export default function RegisterPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showSecondSpecialty, setShowSecondSpecialty] = useState(false);
   const [uploadingFile, setUploadingFile] = useState(false);
+  const [specialtiesList, setSpecialtiesList] = useState<{ id: string, name: string }[]>([]);
+
+  useEffect(() => {
+    const fetchSpecialties = async () => {
+      const { data, error } = await supabase
+        .from('specialties')
+        .select('id, name')
+        .order('name', { ascending: true });
+      if (!error && data) setSpecialtiesList(data);
+    };
+    fetchSpecialties();
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -167,6 +179,33 @@ export default function RegisterPage() {
         errors.fullName = "Nome completo é obrigatório";
         hasError = true;
         missingFields.push("Nome Completo");
+      }
+      // Validação obrigatória para data de nascimento
+      if (!formData.birthDate) {
+        errors.birthDate = "Data de nascimento é obrigatória";
+        hasError = true;
+        missingFields.push("Data de Nascimento");
+      } else {
+        // Validação do formato dd/mm/yyyy
+        const regex = /^\d{2}\/\d{2}\/\d{4}$/;
+        if (!regex.test(formData.birthDate)) {
+          errors.birthDate = "Data de nascimento deve estar no formato dd/mm/aaaa";
+          hasError = true;
+          missingFields.push("Data de Nascimento (formato dd/mm/aaaa)");
+        } else {
+          // Validação se a data é válida
+          const [day, month, year] = formData.birthDate.split('/').map(Number);
+          const dateObj = new Date(year, month - 1, day);
+          if (
+            dateObj.getFullYear() !== year ||
+            dateObj.getMonth() !== month - 1 ||
+            dateObj.getDate() !== day
+          ) {
+            errors.birthDate = "Data de nascimento inválida";
+            hasError = true;
+            missingFields.push("Data de Nascimento (data inválida)");
+          }
+        }
       }
       if (!formData.croNumber) {
         errors.croNumber = "CRO é obrigatório";
@@ -654,15 +693,31 @@ export default function RegisterPage() {
                       )}
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="birthDate">Data de nascimento</Label>
-                      <Input
-                        id="birthDate"
-                        name="birthDate"
-                        type="date"
+                      <Label htmlFor="birthDate">Data de nascimento<span className="text-red-500 ml-1">*</span></Label>
+                      <InputMask
+                        mask="99/99/9999"
                         value={formData.birthDate}
                         onChange={handleChange}
-                        required
-                      />
+                        disabled={isLoading}
+                      >
+                        {(inputProps: any) => (
+                          <Input
+                            {...inputProps}
+                            id="birthDate"
+                            name="birthDate"
+                            placeholder="dd/mm/aaaa"
+                            className={`form-input ${formErrors.birthDate ? 'form-input-error' : ''}`}
+                          />
+                        )}
+                      </InputMask>
+                      {formErrors.birthDate && (
+                        <p className="form-error">
+                          <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          {formErrors.birthDate}
+                        </p>
+                      )}
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="croNumber">CRO<span className="text-red-500 ml-1">*</span></Label>
@@ -698,7 +753,7 @@ export default function RegisterPage() {
                         <SelectTrigger id="croState">
                           <SelectValue placeholder="Selecione o estado" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="max-h-60 overflow-y-auto z-50">
                           {brazilianStates.map((state) => (
                             <SelectItem key={state} value={state}>
                               {state}
@@ -1055,7 +1110,7 @@ export default function RegisterPage() {
                           >
                             <SelectValue placeholder="Selecione o estado" />
                           </SelectTrigger>
-                          <SelectContent>
+                          <SelectContent className="max-h-60 overflow-y-auto z-50">
                             {brazilianStates.map((state) => (
                               <SelectItem key={state} value={state}>
                                 {state}
@@ -1226,7 +1281,7 @@ export default function RegisterPage() {
                             >
                               <SelectValue placeholder="Selecione o estado" />
                             </SelectTrigger>
-                            <SelectContent>
+                            <SelectContent className="max-h-60 overflow-y-auto z-50">
                               {brazilianStates.map((state) => (
                                 <SelectItem key={state} value={state}>
                                   {state}
@@ -1258,7 +1313,9 @@ export default function RegisterPage() {
                       <div className="space-y-4">
                         <h3 className="form-section-title">Especialidades</h3>
                         <div className="space-y-2">
-                          <Label htmlFor="specialty1" className="form-label">Especialidade Principal<span className="text-red-500 ml-1">*</span></Label>
+                          <Label htmlFor="specialty1" className="form-label">
+                            Especialidade Principal<span className="text-red-500 ml-1">*</span>
+                          </Label>
                           <Select
                             value={formData.specialty1}
                             onValueChange={(value) => {
@@ -1270,23 +1327,18 @@ export default function RegisterPage() {
                             disabled={isLoading}
                           >
                             <SelectTrigger id="specialty1">
-                              <SelectValue placeholder="Selecione uma especialidade" />
+                              <SelectValue placeholder="Selecione a especialidade" />
                             </SelectTrigger>
-                            <SelectContent>
-                              {specialties.map((specialty) => (
-                                <SelectItem key={specialty} value={specialty}>
-                                  {specialty}
+                            <SelectContent className="max-h-60 overflow-y-auto z-50">
+                              {specialtiesList.map((spec) => (
+                                <SelectItem key={spec.id} value={spec.name}>
+                                  {spec.name}
                                 </SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
                           {formErrors.specialty1 && (
-                            <p className="form-error">
-                              <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                              </svg>
-                              {formErrors.specialty1}
-                            </p>
+                            <p className="form-error">{formErrors.specialty1}</p>
                           )}
                         </div>
 
@@ -1310,7 +1362,7 @@ export default function RegisterPage() {
                           
                           {showSecondSpecialty && (
                             <div className="space-y-2">
-                              <Label htmlFor="specialty2" className="form-label">Segunda Especialidade*</Label>
+                              <Label htmlFor="specialty2" className="form-label">Segunda Especialidade</Label>
                               <Select
                                 value={formData.specialty2}
                                 onValueChange={(value) => {
@@ -1322,25 +1374,18 @@ export default function RegisterPage() {
                                 disabled={isLoading}
                               >
                                 <SelectTrigger id="specialty2">
-                                  <SelectValue placeholder="Selecione uma especialidade" />
+                                  <SelectValue placeholder="Selecione a segunda especialidade" />
                                 </SelectTrigger>
-                                <SelectContent>
-                                  {specialties
-                                    .filter(specialty => specialty !== formData.specialty1)
-                                    .map((specialty) => (
-                                      <SelectItem key={specialty} value={specialty}>
-                                        {specialty}
-                                      </SelectItem>
-                                    ))}
+                                <SelectContent className="max-h-60 overflow-y-auto z-50">
+                                  {specialtiesList.map((spec) => (
+                                    <SelectItem key={spec.id} value={spec.name}>
+                                      {spec.name}
+                                    </SelectItem>
+                                  ))}
                                 </SelectContent>
                               </Select>
                               {formErrors.specialty2 && (
-                                <p className="form-error">
-                                  <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                  </svg>
-                                  {formErrors.specialty2}
-                                </p>
+                                <p className="form-error">{formErrors.specialty2}</p>
                               )}
                             </div>
                           )}

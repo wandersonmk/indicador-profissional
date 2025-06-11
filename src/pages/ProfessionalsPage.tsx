@@ -32,7 +32,8 @@ export default function ProfessionalsPage() {
 
   useEffect(() => {
     const fetchProfessionals = async () => {
-      const { data, error } = await supabase
+      // Busca todos os profissionais aprovados e não bloqueados
+      const { data: professionals, error } = await supabase
         .from('professional_profiles')
         .select('*')
         .eq('approval_status', 'approved')
@@ -42,7 +43,20 @@ export default function ProfessionalsPage() {
         setAllProfessionals([]);
         return;
       }
-      setAllProfessionals((data || []).map(prof => ({
+      // Busca os profiles desses profissionais
+      const ids = (professionals || []).map(prof => prof.id);
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, role')
+        .in('id', ids);
+      if (profilesError) {
+        console.error('Erro ao buscar profiles:', profilesError);
+        setAllProfessionals([]);
+        return;
+      }
+      // Filtra apenas quem tem role = 'professional'
+      const professionalIds = profiles.filter(p => p.role === 'professional').map(p => p.id);
+      setAllProfessionals((professionals || []).filter(prof => professionalIds.includes(prof.id)).map(prof => ({
         id: prof.id,
         email: prof.email || '',
         fullName: prof.full_name || '',

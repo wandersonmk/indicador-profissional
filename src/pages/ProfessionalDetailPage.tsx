@@ -11,15 +11,48 @@ export default function ProfessionalDetailPage() {
 
   useEffect(() => {
     const fetchProfessional = async () => {
-      const { data, error } = await supabase
-        .from('professional_profiles')
-        .select('*')
-        .eq('id', id)
-        .eq('approval_status', 'approved')
-        .eq('is_blocked', false)
-        .single();
-      setProfessional(data);
-      setLoading(false);
+      try {
+        // Primeiro verifica se é um profissional
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', id)
+          .single();
+
+        // Se não for profissional, não mostra o perfil
+        if (profileData?.role !== 'professional') {
+          setProfessional(null);
+          setLoading(false);
+          return;
+        }
+
+        // Busca o perfil do profissional
+        const { data: professionalData, error: professionalError } = await supabase
+          .from('professional_profiles')
+          .select('*')
+          .eq('id', id)
+          .eq('approval_status', 'approved')
+          .eq('is_blocked', false)
+          .single();
+
+        if (professionalData) {
+          // Busca o email do profissional
+          const { data: emailData, error: emailError } = await supabase
+            .from('profiles')
+            .select('email')
+            .eq('id', id)
+            .single();
+
+          setProfessional({
+            ...professionalData,
+            email: emailData?.email
+          });
+        }
+      } catch (err) {
+        console.error('Erro ao buscar dados:', err);
+      } finally {
+        setLoading(false);
+      }
     };
     fetchProfessional();
   }, [id]);
