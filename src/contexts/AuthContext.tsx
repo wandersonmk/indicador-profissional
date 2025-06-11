@@ -88,6 +88,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const login = async (email: string, password: string) => {
+    // Limpa cache e sessão antes de tentar novo login
+    localStorage.clear();
+    sessionStorage.clear();
     try {
       // Add timeout protection
       const timeoutPromise = new Promise((_, reject) => {
@@ -210,12 +213,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
-      
+      // Limpa todos os dados de sessão e cache
+      localStorage.clear();
+      sessionStorage.clear();
       setUser(null);
       toast({
         title: 'Logout realizado',
         description: 'Você saiu do sistema com sucesso.',
       });
+      // Pequeno delay para garantir sincronização
+      await new Promise(resolve => setTimeout(resolve, 1000));
     } catch (error) {
       console.error('Erro ao fazer logout:', error);
       toast({
