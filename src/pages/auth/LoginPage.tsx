@@ -32,7 +32,7 @@ export default function LoginPage() {
     try {
       // Add timeout protection
       const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Login timeout')), 10000); // 10 second timeout
+        setTimeout(() => reject(new Error('Login timeout')), 30000); // 30 segundos
       });
 
       const result = await Promise.race([
@@ -62,14 +62,14 @@ export default function LoginPage() {
               return;
             }
           }
+          // Se não encontrar perfil, exibe erro e não redireciona
+          setError('Não foi possível localizar o perfil deste usuário. O login não pôde ser concluído.');
+          return;
         } catch (e) {
-          // Se não conseguir buscar perfil, redireciona para dashboard
-          navigate('/dashboard');
+          // Se não conseguir buscar perfil, exibe erro e não redireciona
+          setError('Não foi possível localizar o perfil deste usuário. O login não pôde ser concluído.');
           return;
         }
-        // Fallback
-        navigate('/dashboard');
-        return;
       }
     } catch (error: any) {
       console.error('Login error:', error);
