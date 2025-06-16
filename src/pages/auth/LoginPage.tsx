@@ -41,33 +41,37 @@ export default function LoginPage() {
       ]) as boolean;
 
       if (result) {
-        try {
-          // Buscar perfil do usuário autenticado
-          const { data: profiles, error: profileError } = await Promise.race([
-            supabase
-              .from('profiles')
-              .select('*')
-              .eq('email', email),
-            timeoutPromise
-          ]) as { data: any, error: any };
+        // Buscar perfil pelo id do usuário autenticado
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user && user.id) {
+          try {
+            const { data: profiles, error: profileError } = await Promise.race([
+              supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', user.id),
+              timeoutPromise
+            ]) as { data: any, error: any };
 
-          if (profileError) throw profileError;
-          const currentUser = profiles && profiles.length > 0 ? profiles[0] : null;
-          if (currentUser) {
-            if (currentUser.role === 'admin') {
-              navigate('/admin');
-              return;
-            } else if (currentUser.role === 'professional') {
-              navigate('/dashboard');
-              return;
+            if (profileError) throw profileError;
+            const currentUser = profiles && profiles.length > 0 ? profiles[0] : null;
+            if (currentUser) {
+              if (currentUser.role === 'admin') {
+                navigate('/admin');
+                return;
+              } else if (currentUser.role === 'professional') {
+                navigate('/dashboard');
+                return;
+              }
             }
+            setError('Não foi possível localizar o perfil deste usuário. O login não pôde ser concluído.');
+            return;
+          } catch (e) {
+            setError('Não foi possível localizar o perfil deste usuário. O login não pôde ser concluído.');
+            return;
           }
-          // Se não encontrar perfil, exibe erro e não redireciona
-          setError('Não foi possível localizar o perfil deste usuário. O login não pôde ser concluído.');
-          return;
-        } catch (e) {
-          // Se não conseguir buscar perfil, exibe erro e não redireciona
-          setError('Não foi possível localizar o perfil deste usuário. O login não pôde ser concluído.');
+        } else {
+          setError('Usuário autenticado, mas não foi possível obter o ID do usuário.');
           return;
         }
       }
