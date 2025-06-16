@@ -106,7 +106,7 @@ export default function DashboardPage() {
 
   const handleLogout = async () => {
     await logout();
-    navigate('/');
+    window.location.href = '/';
   };
 
   if (isLoading) {

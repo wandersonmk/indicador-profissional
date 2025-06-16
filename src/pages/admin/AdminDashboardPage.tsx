@@ -52,7 +52,7 @@ export default function AdminDashboardPage() {
 
   const handleLogout = async () => {
     await logout();
-    navigate('/');
+    window.location.href = '/';
   };
 
   return (

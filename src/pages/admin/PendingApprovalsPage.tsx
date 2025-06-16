@@ -207,7 +207,7 @@ export default function PendingApprovalsPage() {
 
   const handleLogout = () => {
     localStorage.removeItem('user');
-    navigate('/login');
+    window.location.href = '/';
     toast({
       title: "Logout realizado",
       description: "Você foi desconectado com sucesso",

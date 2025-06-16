@@ -25,6 +25,7 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isLoading) return; // Evita múltiplos envios
     setError("");
     setIsLoading(true);
 
@@ -40,23 +41,35 @@ export default function LoginPage() {
       ]) as boolean;
 
       if (result) {
-        // Fetch updated profile with timeout protection
-        const { data: profiles } = await Promise.race([
-          supabase
-            .from('profiles')
-            .select('*')
-            .eq('email', email),
-          timeoutPromise
-        ]) as { data: any };
+        try {
+          // Buscar perfil do usuário autenticado
+          const { data: profiles, error: profileError } = await Promise.race([
+            supabase
+              .from('profiles')
+              .select('*')
+              .eq('email', email),
+            timeoutPromise
+          ]) as { data: any, error: any };
 
-        const currentUser = profiles && profiles.length > 0 ? profiles[0] : null;
-        if (currentUser) {
-          if (currentUser.role === 'admin') {
-            navigate('/admin');
-          } else if (currentUser.role === 'professional') {
-            navigate('/dashboard');
+          if (profileError) throw profileError;
+          const currentUser = profiles && profiles.length > 0 ? profiles[0] : null;
+          if (currentUser) {
+            if (currentUser.role === 'admin') {
+              navigate('/admin');
+              return;
+            } else if (currentUser.role === 'professional') {
+              navigate('/dashboard');
+              return;
+            }
           }
+        } catch (e) {
+          // Se não conseguir buscar perfil, redireciona para dashboard
+          navigate('/dashboard');
+          return;
         }
+        // Fallback
+        navigate('/dashboard');
+        return;
       }
     } catch (error: any) {
       console.error('Login error:', error);
@@ -147,6 +160,7 @@ export default function LoginPage() {
                 onMouseOver={e => (e.currentTarget.style.background = 'rgb(98,131,152)')}
                 onMouseOut={e => (e.currentTarget.style.background = 'var(--brand-primary)')}
                 disabled={isLoading}
+                tabIndex={isLoading ? -1 : 0} // Impede foco durante loading
               >
                 {isLoading ? "Entrando..." : "Entrar"}
               </Button>
